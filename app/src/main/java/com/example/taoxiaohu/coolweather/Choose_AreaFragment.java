@@ -59,7 +59,6 @@ public class Choose_AreaFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
     }
 
     @Override
@@ -87,13 +86,24 @@ public class Choose_AreaFragment extends Fragment {
                 } else if (currentLevel == LEVEL_CITY) {
                     selectedCity = cityList.get(position);
                     queryCounties();
-                }else if(currentLevel==LEVEL_COUNTY){
-                    String weatherId=countyList.get(position).getWeatherId();
-                    Intent intent=new Intent(getActivity(), WeatherActivity.class);
-                    intent.putExtra("weather_id",weatherId);
-                    startActivity(intent);
-                    getActivity().finish();
-                }
+                } else if (currentLevel == LEVEL_COUNTY) {
+                    //选择县区的时候清楚SharedPreferences中的内容，否则每次打开APP都是同一个城市的数据
+//                    SharedPreferences.Editor editor= PreferenceManager.getDefaultSharedPreferences(getActivity()).edit();
+//                    editor.remove("weather");
+//                    editor.commit();
+                    String weatherId = countyList.get(position).getWeatherId();
+                    if(getActivity() instanceof MainActivity) {
+                        Intent intent = new Intent(getActivity(), WeatherActivity.class);
+                        intent.putExtra("weather_id", weatherId);
+                        startActivity(intent);
+                        getActivity().finish();
+                    }else if(getActivity() instanceof WeatherActivity){
+                        WeatherActivity activity= (WeatherActivity) getActivity();
+                        activity.drawerLayout.closeDrawers();
+                        activity.swipeRefresh.setRefreshing(true);
+                        activity.requestWeather(weatherId);
+                    }
+                  }
             }
         });
         backButton.setOnClickListener(new View.OnClickListener() {
@@ -179,32 +189,32 @@ public class Choose_AreaFragment extends Fragment {
         HttpUtil.sendOkHttpRequest(address, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-              getActivity().runOnUiThread(new Runnable() {
-                  @Override
-                  public void run() {
-                      closeProgressDialog();
-                      Toast.makeText(getContext(),"加载失败",Toast.LENGTH_SHORT).show();
-                  }
-              });
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        closeProgressDialog();
+                        Toast.makeText(getContext(), "加载失败", Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-               String responseText=response.body().string();
-                boolean result=false;
-                if("province".equals(type)){
-                    result= Utility.handleProvinceResponse(responseText);
-                }else if("city".equals(type)){
-                    result=Utility.handleCityResponse(responseText,selectedProvince.getId());
-                }else if("county".equals(type)){
-                    result=Utility.handleCountyResponse(responseText,selectedCity.getId());
+                String responseText = response.body().string();
+                boolean result = false;
+                if ("province".equals(type)) {
+                    result = Utility.handleProvinceResponse(responseText);
+                } else if ("city".equals(type)) {
+                    result = Utility.handleCityResponse(responseText, selectedProvince.getId());
+                } else if ("county".equals(type)) {
+                    result = Utility.handleCountyResponse(responseText, selectedCity.getId());
                 }
-                if(result){
+                if (result) {
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             closeProgressDialog();
-                            if("province".equals(type)){
+                            if ("province".equals(type)) {
                                 queryProvinces();
                             }
                         }
@@ -231,4 +241,7 @@ public class Choose_AreaFragment extends Fragment {
             progressDialog.dismiss();
         }
     }
+
+
+
 }
